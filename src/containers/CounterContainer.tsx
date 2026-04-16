@@ -1,90 +1,82 @@
-import React, { Component } from "react";
+import React, { useReducer } from "react";
 import Counter from "../views/Counter";
 
 type State = {
   counters: number[];
 };
 
-class CounterContainer extends Component<{}, State> {
-  constructor(props: {}) {
-    super(props);
+type Action =
+  | { type: "ADD" }
+  | { type: "REMOVE" }
+  | { type: "INC"; index: number }
+  | { type: "DEC"; index: number }
+  | { type: "RESET"; index: number }
+  | { type: "RESET_ALL" };
 
-    this.state = {
-      counters: [0]
-    };
+const initialState: State = {
+  counters: [0]
+};
 
-    this.increment = this.increment.bind(this);
-    this.decrement = this.decrement.bind(this);
-    this.reset = this.reset.bind(this);
-    this.resetAll = this.resetAll.bind(this);
-    this.addCounter = this.addCounter.bind(this);
-    this.removeCounter = this.removeCounter.bind(this);
-  }
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "ADD":
+      return {
+        counters: [
+          ...state.counters.map(c => (c % 2 === 0 ? c + 1 : c)),
+          0
+        ]
+      };
 
-  increment(index: number): void {
-    this.setState(prev => ({
-      counters: prev.counters.map((c, i) =>
-        i === index ? c + 1 : c
-      )
-    }));
-  }
-
-  decrement(index: number): void {
-    this.setState(prev => ({
-      counters: prev.counters.map((c, i) =>
-        i === index ? Math.max(0, c - 1) : c
-      )
-    }));
-  }
-
-  reset(index: number): void {
-    this.setState(prev => ({
-      counters: prev.counters.map((c, i) =>
-        i === index ? 0 : c
-      )
-    }));
-  }
-
-  addCounter(): void {
-    this.setState(prev => ({
-      counters: [
-        ...prev.counters.map(c => (c % 2 === 0 ? c + 1 : c)),
-        0
-      ]
-    }));
-  }
-
-  removeCounter(): void {
-    this.setState(prev => {
-      if (prev.counters.length === 1) return null;
+    case "REMOVE":
+      if (state.counters.length === 1) return state;
 
       return {
-        counters: prev.counters
+        counters: state.counters
           .slice(0, -1)
           .map(c => (c % 2 !== 0 ? c - 1 : c))
       };
-    });
-  }
 
-  resetAll(): void {
-    this.setState({
-      counters: [0]
-    });
-  }
+    case "INC":
+      return {
+        counters: state.counters.map((c, i) =>
+          i === action.index ? c + 1 : c
+        )
+      };
 
-  render() {
-    return (
-      <Counter
-        counters={this.state.counters}
-        increment={this.increment}
-        decrement={this.decrement}
-        reset={this.reset}
-        addCounter={this.addCounter}
-        removeCounter={this.removeCounter}
-        resetAll={this.resetAll}
-      />
-    );
+    case "DEC":
+      return {
+        counters: state.counters.map((c, i) =>
+          i === action.index ? Math.max(0, c - 1) : c
+        )
+      };
+
+    case "RESET":
+      return {
+        counters: state.counters.map((c, i) =>
+          i === action.index ? 0 : c
+        )
+      };
+
+    case "RESET_ALL":
+      return initialState;
+
+    default:
+      return state;
   }
 }
 
-export default CounterContainer;
+export default function CounterContainer() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  return (
+    <Counter
+      counters={state.counters}
+      increment={(i) => dispatch({ type: "INC", index: i })}
+      decrement={(i) => dispatch({ type: "DEC", index: i })}
+      reset={(i) => dispatch({ type: "RESET", index: i })}
+      addCounter={() => dispatch({ type: "ADD" })}
+      removeCounter={() => dispatch({ type: "REMOVE" })}
+      resetAll={() => dispatch({ type: "RESET_ALL" })}
+    />
+  );
+}
